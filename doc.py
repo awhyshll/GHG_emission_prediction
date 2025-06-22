@@ -11,12 +11,18 @@ import joblib
 
 excel_file = './SupplyChainEmissionFactorsforUSIndustriesCommodities.xlsx'
 years = list(range(2010, 2017))
-print(years[2])
+print(f"Selected year: {years[2]}")
+
+def load_sheet(year, detail_type):
+    sheet_name = f"{year}_Detail_{detail_type}"
+    return pd.read_excel(excel_file, sheet_name=sheet_name)
 
 try:
-    df_1 = pd.read_excel(excel_file, sheet_name=f'{years[0]}_Detail_Commodity')
+    df_1 = load_sheet(years[0], "Commodity")
+    print("First Commodity Sheet:")
     print(df_1.head())
-    df_2 = pd.read_excel(excel_file, sheet_name=f'{years[0]}_Detail_Industry')
+    df_2 = load_sheet(years[0], "Industry")
+    print("First Industry Sheet:")
     print(df_2.head())
 except Exception as e:
     print(f"Error reading initial sheets: {e}")
@@ -24,29 +30,35 @@ except Exception as e:
 all_data = []
 
 for year in years:
-    try:
-        df_com = pd.read_excel(excel_file, sheet_name=f'{year}_Detail_Commodity')
-        df_ind = pd.read_excel(excel_file, sheet_name=f'{year}_Detail_Industry')
-        df_com['Source'] = 'Commodity'
-        df_ind['Source'] = 'Industry'
-        df_com['Year'] = year
-        df_ind['Year'] = year
-        df_com.columns = df_com.columns.str.strip()
-        df_ind.columns = df_ind.columns.str.strip()
-        df_com.rename(columns={
-            'Commodity Code': 'Code',
-            'Commodity Name': 'Name'
-        }, inplace=True)
-        df_ind.rename(columns={
-            'Industry Code': 'Code',
-            'Industry Name': 'Name'
-        }, inplace=True)
-        all_data.append(pd.concat([df_com, df_ind], ignore_index=True))
-    except Exception as e:
-        print(f"Error processing year {year}: {e}")
+    for detail_type, code_col, name_col, source in [
+        ("Commodity", "Commodity Code", "Commodity Name", "Commodity"),
+        ("Industry", "Industry Code", "Industry Name", "Industry")
+    ]:
+        try:
+            df = load_sheet(year, detail_type)
+            df['Source'] = source
+            df['Year'] = year
+            df.columns = df.columns.str.strip()
+            df.rename(columns={
+                code_col: 'Code',
+                name_col: 'Name'
+            }, inplace=True)
+            all_data.append(df)
+        except Exception as e:
+            print(f"Error processing {detail_type} for year {year}: {e}")
 
-df = pd.concat(all_data, ignore_index=True)
-print(df.head(10))
-print(f"lenght {len(df)}")
-print(df.columns)
-print(df.isnull().sum())
+if all_data:
+    df = pd.concat(all_data, ignore_index=True)
+    print("\nCombined Data Sample:")
+    print(df.head(10))
+    print(f"Total rows: {len(df)}")
+    print("Columns:", df.columns.tolist())
+    print("Missing values per column:\n", df.isnull().sum())
+    # Example visualization
+    if 'Year' in df.columns and 'Source' in df.columns:
+        plt.figure(figsize=(8,4))
+        sns.countplot(data=df, x='Year', hue='Source')
+        plt.title('Record Count by Year and Source')
+        plt.show()
+else:
+    print("No data loaded from Excel.")

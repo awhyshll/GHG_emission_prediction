@@ -54,11 +54,5 @@ if all_data:
     print(f"Total rows: {len(df)}")
     print("Columns:", df.columns.tolist())
     print("Missing values per column:\n", df.isnull().sum())
-    # Example visualization
-    if 'Year' in df.columns and 'Source' in df.columns:
-        plt.figure(figsize=(8,4))
-        sns.countplot(data=df, x='Year', hue='Source')
-        plt.title('Record Count by Year and Source')
-        plt.show()
 else:
     print("No data loaded from Excel.")
